@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, memo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { convertCurrency, SupportedCurrency } from "@/utils/currencyConverter";
@@ -36,6 +35,8 @@ const ProductCard = ({
   const queryClient = useQueryClient();
   const [convertedPrice, setConvertedPrice] = useState<number>(product.price || 0);
   const [isHovered, setIsHovered] = useState(false);
+  const [localWishlistState, setLocalWishlistState] = useState(false);
+  const popSound = new Audio('/pop.mp3');
   const imageUrl = getProductImageUrl(product);
 
   // Get user type
@@ -94,6 +95,11 @@ const ProductCard = ({
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // Sync local state with query result
+  useEffect(() => {
+    setLocalWishlistState(!!isInWishlist);
+  }, [isInWishlist]);
+
   // Toggle wishlist mutation
   const toggleWishlist = useMutation({
     mutationFn: async () => {
@@ -144,9 +150,17 @@ const ProductCard = ({
         if (addError) throw addError;
       }
     },
+    onMutate: () => {
+      setLocalWishlistState(prev => !prev);
+      popSound.play().catch(console.error);
+    },
+    onError: () => {
+      setLocalWishlistState(prev => !prev); // Revert on error
+      toast.error('Failed to update wishlist');
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wishlist'] });
-      toast.success(isInWishlist ? 'Removed from wishlist' : 'Added to wishlist');
+      toast.success(localWishlistState ? 'Added to wishlist' : 'Removed from wishlist');
     },
   });
 
@@ -221,94 +235,89 @@ const ProductCard = ({
 
   return (
     <Card 
-      className="w-full rounded-xl overflow-hidden group relative transition-all duration-300 hover:shadow-xl bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700"
+      className="group relative w-full overflow-hidden rounded-xl transition-all duration-300 hover:shadow-lg bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Card Image with overlay */}
-      <div 
-        className="relative h-52 overflow-hidden cursor-pointer"
-        onClick={onClick}
-      >
-        <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 z-10 opacity-0 transition-opacity duration-300 ${isHovered ? 'opacity-100' : ''}`} />
+      {/* Image Section */}
+      <div className="relative h-64 overflow-hidden">
+        <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 z-10 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
         
         <ImageLoader
           src={imageUrl}
           alt={product.title || ""}
-          className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
           width={400}
-          height={208}
+          height={256}
           priority={false}
         />
         
-        {/* Badge Container - Top Right */}
-        <div className="absolute top-3 right-3 z-20 flex flex-col gap-2 items-end">
-          {/* Stock Badge */}
-          <span 
-            className={`text-xs px-2 py-1 rounded-full font-medium backdrop-blur ${
-              product.in_stock 
-                ? 'bg-green-500/80 text-white' 
-                : 'bg-red-500/80 text-white'
-            }`}
-          >
+        {/* Price Tag */}
+        <div className="absolute top-4 left-4 z-20">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold px-3 py-1.5 rounded-full bg-white/90 dark:bg-gray-900/90 text-orange-500 backdrop-blur-sm border border-orange-500/20 shadow-lg">
+              {selectedCurrency} {Math.round(convertedPrice).toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {/* Status Badges */}
+        <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 items-end">
+          <span className={`text-xs px-3 py-1.5 rounded-full font-medium backdrop-blur-sm shadow-sm
+            ${product.in_stock 
+              ? 'bg-emerald-500/90 text-white border border-emerald-400/30' 
+              : 'bg-red-500/90 text-white border border-red-400/30'}`}>
             {product.in_stock ? 'In Stock' : 'Out of Stock'}
           </span>
           
-          {/* Status Badge (conditional) */}
           {showStatus && (
-            <span className={`text-xs px-2 py-1 rounded-full font-medium backdrop-blur ${
-              product.product_status === 'published' 
-                ? 'bg-emerald-500/80 text-white' 
-                : 'bg-amber-500/80 text-white'
-            }`}>
+            <span className={`text-xs px-3 py-1.5 rounded-full font-medium backdrop-blur-sm shadow-sm
+              ${product.product_status === 'published' 
+                ? 'bg-blue-500/90 text-white border border-blue-400/30' 
+                : 'bg-amber-500/90 text-white border border-amber-400/30'}`}>
               {product.product_status === 'published' ? 'Published' : 'Draft'}
             </span>
           )}
         </div>
 
-        {/* Category Badge - Bottom */}
-        <div className="absolute bottom-3 left-3 right-3 z-20">
-          <div className="flex flex-wrap gap-2">
-            <span className="text-xs px-2 py-1 rounded-full bg-blue-500/90 text-white backdrop-blur-sm font-medium">
-              {product.category}
-            </span>
-          </div>
-        </div>
-        
-        {/* Price Tag - Top Left */}
-        <div className="absolute top-0 left-0 z-20">
-          <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-4 py-1 rounded-br-lg font-bold shadow-lg">
-            {selectedCurrency} {convertedPrice.toFixed(0)}
-          </div>
+        {/* Category Badge */}
+        <div className="absolute bottom-4 left-4 z-20">
+          <span className="text-xs px-3 py-1.5 rounded-full bg-white/90 dark:bg-gray-900/90 text-gray-900 dark:text-white backdrop-blur-sm font-medium border border-gray-200/50 dark:border-gray-700/50">
+            {product.category}
+          </span>
         </div>
       </div>
       
-      {/* Card Content */}
-      <div 
-        className="p-4 cursor-pointer"
-        onClick={onClick}
-      >
-        <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg line-clamp-1 group-hover:text-orange-500 transition-colors">
+      {/* Content Section */}
+      <div className="p-5 space-y-3" onClick={onClick}>
+        <h3 className="font-semibold text-gray-900 dark:text-white text-lg line-clamp-1 group-hover:text-orange-500 transition-colors">
           {product.title}
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mt-1">
+        <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
           {product.description}
         </p>
       </div>
       
-      {/* Card Actions */}
-      <div className="px-4 pb-4 flex items-center justify-between">
-        {/* Left side actions */}
+      {/* Actions Section */}
+      <div className="px-5 pb-5 flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-4">
+        {/* User Actions */}
         {session && !isAdminProp && !isAdmin && (
           <div className="flex gap-2">
             <Button
               variant="ghost"
               size="sm"
-              className={`rounded-full transition-all ${isInWishlist ? 'text-red-500 hover:text-red-600' : 'hover:text-red-500'}`}
+              className={`rounded-full w-10 h-10 transition-all transform hover:scale-110 ${
+                localWishlistState ? 'text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100' : 
+                'hover:text-red-500 hover:bg-red-50'
+              }`}
               onClick={handleToggleWishlist}
               disabled={toggleWishlist.isPending}
             >
-              <Heart className={`w-4 h-4 ${isInWishlist ? 'fill-red-500' : ''}`} />
+              <Heart 
+                className={`w-6 h-6 transition-all duration-300 ${
+                  localWishlistState ? 'fill-red-500 scale-110' : 'scale-100'
+                }`} 
+              />
             </Button>
             
             <Button
@@ -318,13 +327,13 @@ const ProductCard = ({
               onClick={handleAddToCart}
               disabled={!product.in_stock || addToCart.isPending}
             >
-              <ShoppingCart className="w-4 h-4 mr-1" />
-              <span className="text-xs">Add</span>
+              <ShoppingCart className="w-4 h-4 mr-1.5" />
+              <span className="text-sm">Add to Cart</span>
             </Button>
           </div>
         )}
         
-        {/* Right side admin actions */}
+        {/* Admin Actions */}
         {(isAdminProp || isAdmin || product.user_id === session?.user?.id) && (
           <div className="flex gap-2 ml-auto">
             {onDelete && (
@@ -363,9 +372,6 @@ const ProductCard = ({
           </div>
         )}
       </div>
-      
-      {/* Hover Overlay for Touch Devices */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-0" />
     </Card>
   );
 };

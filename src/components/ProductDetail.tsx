@@ -26,12 +26,11 @@ const ProductDetail = ({
   selectedCurrency = "SSP" 
 }: ProductDetailProps) => {
   const [selectedImage, setSelectedImage] = useState<string>(
-    product.product_images?.find(img => !img.is_main)?.storage_path || 
+    product.product_images?.find(img => img.is_main)?.storage_path || 
     product.product_images?.[0]?.storage_path || 
     ''
   );
   const [convertedPrice, setConvertedPrice] = useState<number>(product.price || 0);
-
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -100,27 +99,52 @@ const ProductDetail = ({
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardContent className="space-y-6">
-          <ProductInfo
-            title={product.title || ''}
-            category={product.category || 'Other'}
-            averageRating={product.average_rating || 0}
-            inStock={product.in_stock || false}
-            description={product.description || ''}
-            onBack={onBack}
-          />
+    <div className="space-y-8 pb-20 max-w-7xl mx-auto">
+      <Card className="overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200/50 dark:border-gray-700/50">
+        <CardContent className="p-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column - Image Gallery */}
+            <div className="p-6 lg:border-r border-gray-200/50 dark:border-gray-700/50">
+              <Suspense fallback={<Skeleton className="aspect-square w-full rounded-xl" />}>
+                <ProductGallery
+                  images={product.product_images || []}
+                  selectedImage={selectedImage}
+                  onImageSelect={setSelectedImage}
+                  title={product.title || ''}
+                />
+              </Suspense>
+            </div>
 
-          <Suspense fallback={<Skeleton className="aspect-[4/3] w-full rounded-lg" />}>
-            <ProductGallery
-              images={product.product_images || []}
-              selectedImage={selectedImage}
-              onImageSelect={setSelectedImage}
-              title={product.title || ''}
-            />
-          </Suspense>
+            {/* Right Column - Product Info */}
+            <div className="p-6 flex flex-col h-full">
+              <ProductInfo
+                title={product.title || ''}
+                category={product.category || 'Other'}
+                averageRating={product.average_rating || 0}
+                inStock={product.in_stock || false}
+                description={product.description || ''}
+                onBack={onBack}
+              />
 
+              <div className="mt-auto pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+                <ProductActions
+                  price={product.price || 0}
+                  currency={product.currency || "SSP"}
+                  selectedCurrency={selectedCurrency}
+                  convertedPrice={convertedPrice}
+                  inStock={product.in_stock || false}
+                  onAddToCart={handleAddToCart}
+                  isAddingToCart={addToCartMutation.isPending}
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Reviews Section */}
+      <Card className="overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200/50 dark:border-gray-700/50">
+        <CardContent className="p-6">
           <Suspense fallback={<Skeleton className="h-48 w-full" />}>
             <ProductReviews 
               productId={product.id} 
@@ -128,33 +152,24 @@ const ProductDetail = ({
             />
           </Suspense>
         </CardContent>
-
-        <CardFooter>
-          <ProductActions
-            price={product.price || 0}
-            currency={product.currency || "SSP"}
-            selectedCurrency={selectedCurrency}
-            convertedPrice={convertedPrice}
-            inStock={product.in_stock || false}
-            onAddToCart={handleAddToCart}
-            isAddingToCart={addToCartMutation.isPending}
-          />
-        </CardFooter>
       </Card>
 
+      {/* Similar Products Section */}
       {similarProducts && (
-        <ProductSimilar
-          products={similarProducts}
-          getProductImageUrl={getProductImageUrl}
-          onProductClick={(similarProduct) => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            onBack();
-            setTimeout(() => {
-              onBack();
-            }, 100);
-          }}
-          selectedCurrency={selectedCurrency}
-        />
+        <Card className="overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200/50 dark:border-gray-700/50">
+          <CardContent className="p-6">
+            <ProductSimilar
+              products={similarProducts}
+              getProductImageUrl={getProductImageUrl}
+              onProductClick={(similarProduct) => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                onBack();
+                setTimeout(() => onBack(), 100);
+              }}
+              selectedCurrency={selectedCurrency}
+            />
+          </CardContent>
+        </Card>
       )}
     </div>
   );

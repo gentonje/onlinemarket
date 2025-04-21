@@ -26,6 +26,22 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
+  return (
+    <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center">Loading application...</div>}>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <ThemeProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </Suspense>
+  );
+};
+
+const AppContent = () => {
   const location = useLocation();
   const isLoginPage = location.pathname === '/login';
 
@@ -33,24 +49,16 @@ const App = () => {
   const TopNav = () => <div>Top Navigation Placeholder</div>;
 
   // Replace with actual authentication logic
-  const isAuthenticated = true; 
+  const isAuthenticated = true;
 
   return (
-    <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center">Loading application...</div>}>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <ThemeProvider>
-            <AuthProvider>
-              {!isLoginPage && <TopNav />}
-              <Routes />
-              {!isLoginPage && <BottomNav isAuthenticated={isAuthenticated} />}
-              <Toaster />
-              <SonnerToaster position="top-right" expand={false} closeButton theme="light" richColors />
-            </AuthProvider>
-          </ThemeProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </Suspense>
+    <>
+      {!isLoginPage && <TopNav />}
+      <Routes />
+      {!isLoginPage && <BottomNav isAuthenticated={isAuthenticated} />}
+      <Toaster />
+      <SonnerToaster position="top-right" expand={false} closeButton theme="light" richColors />
+    </>
   );
 };
 

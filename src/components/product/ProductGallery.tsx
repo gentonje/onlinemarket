@@ -10,58 +10,46 @@ interface ProductGalleryProps {
   title: string;
 }
 
-export const ProductGallery = ({ images, selectedImage, onImageSelect, title }: ProductGalleryProps) => {
-  const [mainImageUrl, setMainImageUrl] = useState<string>("");
-  const [thumbnailUrls, setThumbnailUrls] = useState<{ [key: string]: string }>({});
-
-  useEffect(() => {
-    const loadMainImage = async () => {
-      const { data } = supabase.storage.from('images').getPublicUrl(selectedImage);
-      setMainImageUrl(data.publicUrl);
-    };
-
-    const loadThumbnails = async () => {
-      const urls: { [key: string]: string } = {};
-      
-      for (const image of images) {
-        const { data } = supabase.storage.from('images').getPublicUrl(image.storage_path);
-        urls[image.storage_path] = data.publicUrl;
-      }
-      
-      setThumbnailUrls(urls);
-    };
-
-    loadMainImage();
-    loadThumbnails();
-  }, [selectedImage, images]);
-
+export const ProductGallery = ({
+  images,
+  selectedImage,
+  onImageSelect,
+  title
+}: ProductGalleryProps) => {
   return (
     <div className="space-y-4">
-      <div className="aspect-[4/3] relative rounded-lg overflow-hidden bg-gray-100">
+      {/* Main Image */}
+      <div className="aspect-square w-full rounded-xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-800/50">
         <ImageLoader
-          src={mainImageUrl}
+          src={selectedImage}
           alt={title}
-          className="w-full h-full object-cover"
-          width={800}
+          className="w-full h-full object-contain"
+          width={600}
           height={600}
           priority={true}
         />
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-4 px-2 pt-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+
+      {/* Thumbnails */}
+      <div className="grid grid-cols-5 gap-4">
         {images.map((image, index) => (
           <div
             key={index}
-            className={`relative min-w-[80px] h-20 rounded-md overflow-hidden cursor-pointer transition-all hover:opacity-90 ${
-              selectedImage === image.storage_path ? 'ring-2 ring-primary' : ''
-            }`}
+            className={`
+              relative aspect-square rounded-lg overflow-hidden cursor-pointer
+              border-2 transition-all duration-300
+              ${selectedImage === image.storage_path
+                ? 'border-orange-500 ring-2 ring-orange-500/20'
+                : 'border-transparent hover:border-orange-500/50'}
+            `}
             onClick={() => onImageSelect(image.storage_path)}
           >
             <ImageLoader
-              src={thumbnailUrls[image.storage_path] || ''}
+              src={image.storage_path}
               alt={`${title} ${index + 1}`}
               className="w-full h-full object-cover"
-              width={80}
-              height={80}
+              width={100}
+              height={100}
               priority={false}
             />
           </div>

@@ -20,39 +20,57 @@ export const ProductInfo = ({
   onBack,
 }: ProductInfoProps) => {
   return (
-    <div className="space-y-4 mt-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
           size="sm"
-          className="text-gray-600 dark:text-gray-300"
+          className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
           onClick={onBack}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
+        <Badge variant={inStock ? "default" : "destructive"} className="rounded-full px-3">
+          {inStock ? "In Stock" : "Out of Stock"}
+        </Badge>
       </div>
 
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 dark:font-bold">{title}</h1>
+      <div className="space-y-4">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+          {title}
+        </h1>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-4">
+          <Badge variant="outline" className="rounded-full text-sm font-medium">
+            {category}
+          </Badge>
+          
           <div className="flex items-center">
-            <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-            <span className="ml-1 text-sm font-normal text-gray-600 dark:text-gray-300 dark:font-medium">
+            <div className="flex items-center">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={16}
+                  className={`${
+                    star <= averageRating 
+                      ? 'text-yellow-400 fill-yellow-400' 
+                      : 'text-gray-300 dark:text-gray-600'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
               {averageRating.toFixed(1)}
             </span>
           </div>
-          <Badge variant={inStock ? "default" : "destructive"}>
-            {inStock ? "In Stock" : "Out of Stock"}
-          </Badge>
         </div>
 
-        <p className="text-sm font-normal text-gray-800 dark:text-gray-200 dark:font-medium">{category}</p>
-      </div>
-
-      <div className="rounded-md border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/50 dark:bg-gray-800/50 mt-4 mb-2">
-        <p className="text-sm font-light text-gray-500 dark:text-gray-300 dark:font-normal leading-relaxed">{description}</p>
+        <div className="prose prose-gray dark:prose-invert max-w-none">
+          <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+            {description}
+          </p>
+        </div>
       </div>
     </div>
   );

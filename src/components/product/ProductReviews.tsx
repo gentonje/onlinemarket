@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { MessageSquare, Send, Star } from "lucide-react";
+import { Star, Send } from "lucide-react";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import { ScrollArea } from "../ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { Card } from "../ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { StarRating } from "./ProductHeader";
+import { supabase } from "@/integrations/supabase/client";
+import type { ReactNode } from "react";
 
 interface Review {
   id: string;
@@ -14,20 +15,21 @@ interface Review {
   comment: string;
   created_at: string;
   user_id: string;
+  product_id: string;
   profiles: {
-    full_name: string;
-    avatar_url: string;
+    username?: string;
+    full_name?: string;
   };
-  review_replies: {
+  review_replies?: Array<{
     id: string;
     content: string;
     created_at: string;
     user_id: string;
     profiles: {
-      full_name: string;
-      avatar_url: string;
+      username?: string;
+      full_name?: string;
     };
-  }[];
+  }>;
 }
 
 interface ProductReviewsProps {
@@ -36,198 +38,255 @@ interface ProductReviewsProps {
 }
 
 export const ProductReviews = ({ productId, sellerId }: ProductReviewsProps) => {
-  const [newReview, setNewReview] = useState("");
-  const [selectedRating, setSelectedRating] = useState(5);
-  const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isAddingReview, setIsAddingReview] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [replyText, setReplyText] = useState("");
 
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
+  const { data: session } = useQuery({
+    queryKey: ['session'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
+      const { data: { session } } = await supabase.auth.getSession();
+      return session;
     }
   });
 
-  const { data: reviews, isLoading: isLoadingReviews } = useQuery({
+  const { data: reviews = [] } = useQuery<Review[]>({
     queryKey: ['reviews', productId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('reviews')
         .select(`
           *,
-          profiles (full_name, avatar_url),
+          profiles (username, full_name),
           review_replies (
             id,
             content,
             created_at,
             user_id,
-            profiles (full_name, avatar_url)
+            profiles (username, full_name)
           )
         `)
         .eq('product_id', productId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Review[];
+      return data;
     }
   });
 
-  const addReviewMutation = useMutation({
-    mutationFn: async () => {
-      if (!currentUser) throw new Error("Must be logged in to review");
-      if (currentUser.id === sellerId) throw new Error("Cannot review your own product");
+  const isSeller = session?.user?.id === sellerId;
 
+  const addReviewMutation = useMutation({
+    mutationFn: async (reviewData: { productId: string; rating: number; comment: string }) => {
       const { error } = await supabase
         .from('reviews')
         .insert({
-          product_id: productId,
-          rating: selectedRating,
-          comment: newReview,
-          user_id: currentUser.id
+          product_id: reviewData.productId,
+          rating: reviewData.rating,
+          comment: reviewData.comment,
+          user_id: session?.user?.id
         });
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviews', productId] });
-      setNewReview("");
-      setSelectedRating(5);
-      toast({
-        title: "Review added",
-        description: "Your review has been posted successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
     }
   });
 
   const addReplyMutation = useMutation({
     mutationFn: async ({ reviewId, content }: { reviewId: string; content: string }) => {
-      if (!currentUser) throw new Error("Must be logged in to reply");
-
       const { error } = await supabase
         .from('review_replies')
         .insert({
           review_id: reviewId,
           content,
-          user_id: currentUser.id
+          user_id: session?.user?.id
         });
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviews', productId] });
-      setReplyContent({});
-      toast({
-        title: "Reply added",
-        description: "Your reply has been posted successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      setReplyText('');
     }
   });
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    addReviewMutation.mutate();
+    if (!rating || !comment.trim()) return;
+
+    try {
+      await addReviewMutation.mutateAsync({
+        productId,
+        rating,
+        comment: comment.trim()
+      });
+      setIsAddingReview(false);
+      setRating(0);
+      setComment("");
+    } catch (error) {
+      console.error("Error submitting review:", error);
+    }
   };
 
   const handleSubmitReply = async (reviewId: string) => {
-    const content = replyContent[reviewId];
-    if (!content?.trim()) return;
+    if (!replyText.trim()) return;
     
-    addReplyMutation.mutate({ reviewId, content });
+    try {
+      await addReplyMutation.mutateAsync({
+        reviewId,
+        content: replyText.trim()
+      });
+    } catch (error) {
+      console.error("Error submitting reply:", error);
+    }
   };
 
-  const canReview = currentUser && currentUser.id !== sellerId;
-
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Reviews</h3>
-      
-      {canReview && (
-        <form onSubmit={handleSubmitReview} className="space-y-2">
-          <div className="flex items-center gap-2">
-            <StarRating rating={selectedRating} />
-            <span className="text-sm text-muted-foreground">Select rating</span>
-          </div>
-          <Textarea
-            placeholder="Write your review..."
-            value={newReview}
-            onChange={(e) => setNewReview(e.target.value)}
-          />
-          <Button type="submit" disabled={addReviewMutation.isPending}>
-            Post Review
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Reviews</h2>
+        {session && (
+          <Button
+            onClick={() => setIsAddingReview(true)}
+            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white"
+          >
+            Write a Review
           </Button>
-        </form>
+        )}
+      </div>
+
+      {isAddingReview && (
+        <Card className="p-6 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50">
+          <form onSubmit={handleSubmitReview} className="space-y-4">
+            <div>
+              <Label htmlFor="rating">Rating</Label>
+              <div className="flex gap-2 mt-2">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setRating(value)}
+                    className={`p-1 rounded-full transition-colors ${
+                      rating >= value 
+                        ? 'text-yellow-400 hover:text-yellow-500' 
+                        : 'text-gray-300 hover:text-gray-400'
+                    }`}
+                  >
+                    <Star className={`w-6 h-6 ${rating >= value ? 'fill-current' : ''}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="comment">Your Review</Label>
+              <Textarea
+                id="comment"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                className="mt-2"
+                placeholder="Share your thoughts about this product..."
+                rows={4}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddingReview(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!rating || !comment.trim() || addReviewMutation.isPending}
+              >
+                {addReviewMutation.isPending ? 'Submitting...' : 'Submit Review'}
+              </Button>
+            </div>
+          </form>
+        </Card>
       )}
 
-      <div className="space-y-4">
-        {isLoadingReviews ? (
-          <div>Loading reviews...</div>
-        ) : (
-          <div className="space-y-4">
-            {reviews?.map((review) => (
-              <div key={review.id} className="border rounded-lg p-4 space-y-2">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="font-semibold">{review.profiles.full_name}</div>
-                    <StarRating rating={review.rating} />
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(review.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-                <p className="text-sm">{review.comment}</p>
-
-                <div className="ml-6 space-y-2">
-                  {review.review_replies?.map((reply) => (
-                    <div key={reply.id} className="border-l-2 pl-4 py-2">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium text-sm">{reply.profiles.full_name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(reply.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <p className="text-sm">{reply.content}</p>
-                    </div>
-                  ))}
-
-                  {currentUser && (
-                    <div className="flex gap-2">
-                      <Textarea
-                        placeholder="Write a reply..."
-                        value={replyContent[review.id] || ''}
-                        onChange={(e) => setReplyContent(prev => ({
-                          ...prev,
-                          [review.id]: e.target.value
-                        }))}
-                        className="text-sm"
+      <div className="space-y-6">
+        {reviews.map((review) => (
+          <Card 
+            key={review.id}
+            className="p-6 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50"
+          >
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        size={16}
+                        className={`${
+                          star <= review.rating 
+                            ? 'text-yellow-400 fill-yellow-400' 
+                            : 'text-gray-300'
+                        }`}
                       />
-                      <Button
-                        size="sm"
-                        onClick={() => handleSubmitReply(review.id)}
-                        disabled={addReplyMutation.isPending}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                    ))}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {(review.profiles?.username || review.profiles?.full_name || 'Anonymous') as ReactNode}
+                  </span>
                 </div>
+                <p className="text-gray-600 dark:text-gray-400">{review.comment}</p>
+              </div>
+              <span className="text-xs text-gray-500">
+                {new Date(review.created_at).toLocaleDateString()}
+              </span>
+            </div>
+
+            {review.review_replies?.map((reply) => (
+              <div key={reply.id} className="mt-4 pl-6 border-l-2 border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-300">
+                    Seller Response
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {new Date(reply.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {reply.content}
+                </p>
               </div>
             ))}
+
+            {isSeller && !review.review_replies?.length && (
+              <div className="mt-4">
+                <div className="flex gap-2">
+                  <Input
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Reply to this review..."
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={() => handleSubmitReply(review.id)}
+                    disabled={addReplyMutation.isPending}
+                    size="sm"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        ))}
+
+        {!reviews.length && (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400">No reviews yet. Be the first to review this product!</p>
           </div>
         )}
       </div>

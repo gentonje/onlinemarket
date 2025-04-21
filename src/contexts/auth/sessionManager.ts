@@ -5,12 +5,25 @@ import { toast } from "sonner";
 export class SessionManager {
   private static MAX_RETRIES = 3;
   private static RETRY_DELAY = 1000; // 1 second
+  private static retryAttempts = new Map<string, number>();
+  private static lastRetryTime = new Map<string, number>();
 
   static async refreshSession(currentSession: Session, retryCount: number): Promise<Session | null> {
-    if (retryCount >= this.MAX_RETRIES) {
-      console.log('Max retries reached for session refresh');
+    const userId = currentSession?.user?.id;
+    if (!userId) return null;
+
+    // Rate limiting
+    const now = Date.now();
+    const lastRetry = this.lastRetryTime.get(userId) || 0;
+    if (now - lastRetry < this.RETRY_DELAY) {
+      console.log('Rate limited: Too many refresh attempts');
       return null;
     }
+    this.lastRetryTime.set(userId, now);
+
+    // Exponential backoff
+    const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+    await new Promise(resolve => setTimeout(resolve, backoffDelay));
 
     try {
       const { data: { session }, error } = await supabase.auth.refreshSession();
@@ -30,10 +43,18 @@ export class SessionManager {
         return null;
       }
 
+      // Reset retry count on success
+      this.retryAttempts.delete(userId);
       return session;
     } catch (error) {
-      console.error('Session refresh failed:', error);
-      await this.handleSignOut();
+      // Increment retry count
+      const attempts = (this.retryAttempts.get(userId) || 0) + 1;
+      this.retryAttempts.set(userId, attempts);
+
+      console.error(`Session refresh failed (attempt ${attempts}):`, error);
+      if (attempts >= this.MAX_RETRIES) {
+        await this.handleSignOut();
+      }
       return null;
     }
   }
