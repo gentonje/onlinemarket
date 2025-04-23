@@ -12,10 +12,10 @@ const Login = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
 
-  if (session) {
-    navigate('/');
-    return null;
-  }
+  // if (session) {
+  //   navigate('/');
+  //   return null;
+  // }
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-start bg-slate-900 p-1">

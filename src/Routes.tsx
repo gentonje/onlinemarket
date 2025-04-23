@@ -1,4 +1,3 @@
-
 import React, { lazy, Suspense } from 'react';
 import { Routes as RouterRoutes, Route, Navigate } from 'react-router-dom';
 import { PrivateRoute } from '@/components/PrivateRoute';
@@ -24,10 +23,10 @@ const MyProducts = lazy(() => import('./pages/MyProducts'));
 const PageLoader = () => (
   <div className="container mx-auto p-4 mt-20">
     <Skeleton className="h-12 w-full mb-4" />
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {[...Array(8)].map((_, i) => (
+    <div className="grid grid-cols-2 md:grid-cols-6 lg:grid-cols-4 gap-4">
+      {[...Array(4)].map((_, i) => (
         <Skeleton key={i} className="h-48 w-full" />
-      ))}
+      ))} 
     </div>
   </div>
 );

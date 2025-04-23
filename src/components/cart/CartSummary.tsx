@@ -39,7 +39,6 @@ export const CartSummary = ({
             <SelectValue placeholder="Select payment method" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="stripe">Credit Card (Stripe)</SelectItem>
             <SelectItem value="paypal">PayPal</SelectItem>
             <SelectItem value="mpesa">M-Pesa</SelectItem>
             <SelectItem value="mtn_momo">MTN Mobile Money</SelectItem>

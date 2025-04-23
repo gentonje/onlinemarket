@@ -16,7 +16,7 @@ import { PaymentHandler } from "@/components/cart/PaymentHandler";
 export default function Cart() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("stripe");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("paypal"); // Default to PayPal or another local method
   const [shippingAddress, setShippingAddress] = useState<string>("");
   const { deleteItemMutation } = useCartMutations();
 

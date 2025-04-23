@@ -12,7 +12,7 @@ export const PaymentHandler = ({ orderId, paymentMethod }: PaymentHandlerProps) 
 
   const handlePayment = async () => {
     try {
-      // Simulate payment processing
+      // Simulate payment processing for local methods only
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast({

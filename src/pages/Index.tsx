@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo } from "react";
 import { useInView } from "react-intersection-observer";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,13 +70,12 @@ export default function Index() {
   // Get image URL with memoization
   const getProductImageUrl = useCallback((product: Product) => {
     if (!product.product_images?.length) return "/placeholder.svg";
-    
     const mainImage = product.product_images.find(img => img.is_main) || product.product_images[0];
-    if (!mainImage) return "/placeholder.svg";
-
-    return supabase.storage
+    if (!mainImage || !mainImage.storage_path) return "/placeholder.svg";
+    const publicUrl = supabase.storage
       .from("images")
       .getPublicUrl(mainImage.storage_path).data.publicUrl;
+    return publicUrl || "/placeholder.svg";
   }, []);
 
   // Event handlers
@@ -149,7 +147,13 @@ export default function Index() {
         />
         {selectedProduct ? (
           <ProductDetail 
-            product={selectedProduct}
+            product={{
+              ...selectedProduct,
+              product_images: (selectedProduct.product_images || []).map(img => ({
+                ...img,
+                publicUrl: supabase.storage.from("images").getPublicUrl(img.storage_path).data.publicUrl || "/placeholder.svg"
+              }))
+            }}
             getProductImageUrl={getProductImageUrl}
             onBack={handleBack}
             selectedCurrency={selectedCurrency}

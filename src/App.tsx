@@ -2,11 +2,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, lazy } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
-import { Routes } from "@/Routes";
+import { Routes as RouterRoutes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { BrowserRouter, useLocation } from 'react-router-dom';
 import { BottomNav } from '@/components/navigation/BottomNav';
+import Login from "./pages/Login";
+import { Bot } from "lucide-react";
+import { Routes } from "./Routes";
 
 // Create a client with optimized configuration
 const queryClient = new QueryClient({
@@ -42,24 +45,7 @@ const App = () => {
 };
 
 const AppContent = () => {
-  const location = useLocation();
-  const isLoginPage = location.pathname === '/login';
-
-  // Placeholder for TopNav component
-  const TopNav = () => <div>Top Navigation Placeholder</div>;
-
-  // Replace with actual authentication logic
-  const isAuthenticated = true;
-
-  return (
-    <>
-      {!isLoginPage && <TopNav />}
-      <Routes />
-      {!isLoginPage && <BottomNav isAuthenticated={isAuthenticated} />}
-      <Toaster />
-      <SonnerToaster position="top-right" expand={false} closeButton theme="light" richColors />
-    </>
-  );
+  return <Routes />;
 };
 
 export default App;

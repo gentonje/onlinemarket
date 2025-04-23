@@ -1,4 +1,3 @@
-
 import { useState, useEffect, memo, useCallback } from "react";
 import { Skeleton } from "./ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +16,7 @@ const preloadImage = (src: string): Promise<void> => {
     const img = new Image();
     img.src = src;
     img.onload = () => resolve();
-    img.onerror = () => reject();
+    img.onerror = (e) => reject(new Error(`Failed to preload image: ${src}`));
   });
 };
 
@@ -92,7 +91,7 @@ export const ImageLoader = memo(({
         height={height}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
-        fetchPriority={priority ? "high" : "auto"}
+        fetchpriority={priority ? "high" : "auto"}
         onLoad={() => setIsLoading(false)}
       />
     </>
