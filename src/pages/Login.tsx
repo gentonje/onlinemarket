@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
@@ -7,15 +6,25 @@ import { Logo } from "@/components/navigation/Logo";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { useAuth } from "@/contexts/AuthContext";
 
-const Login = () => {
+const Login = () => {  
   const [authView, setAuthView] = useState<'sign_in' | 'sign_up'>('sign_in');
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
 
-  // if (session) {
-  //   navigate('/');
-  //   return null;
-  // }
+  useEffect(() => {
+    console.log('Login page effect:', { loading, session });
+    if (!loading && session && session.user) {
+      navigate('/products', { replace: true });
+    }
+  }, [session, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-900">
+        <div className="text-white text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-start bg-slate-900 p-1">
@@ -105,7 +114,6 @@ const Login = () => {
               },
             }}
             providers={[]}
-            redirectTo={window.location.origin}
           />
         </div>
       </div>

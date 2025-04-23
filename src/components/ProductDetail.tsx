@@ -25,11 +25,18 @@ const ProductDetail = ({
   getProductImageUrl,
   selectedCurrency = "SSP" 
 }: ProductDetailProps) => {
-  const [selectedImage, setSelectedImage] = useState<string>(
-    product.product_images?.find(img => img.is_main)?.storage_path || 
-    product.product_images?.[0]?.storage_path || 
-    ''
-  );
+  const [selectedImage, setSelectedImage] = useState<string>(() => {
+    const mainImage = product.product_images?.find(img => img.is_main);
+    const firstImage = product.product_images?.[0];
+    const imagePath = mainImage?.storage_path || firstImage?.storage_path;
+    
+    if (imagePath) {
+      return supabase.storage
+        .from("images")
+        .getPublicUrl(imagePath).data.publicUrl;
+    }
+    return "/placeholder.svg";
+  });
   const [convertedPrice, setConvertedPrice] = useState<number>(product.price || 0);
   const queryClient = useQueryClient();
 
@@ -56,7 +63,7 @@ const ProductDetail = ({
         .limit(4);
       
       if (error) throw error;
-      return data as Product[];
+      return data;
     },
     enabled: !!product.category,
   });
@@ -107,7 +114,12 @@ const ProductDetail = ({
             <div className="p-6 lg:border-r border-gray-200/50 dark:border-gray-700/50">
               <Suspense fallback={<Skeleton className="aspect-square w-full rounded-xl" />}>
                 <ProductGallery
-                  images={product.product_images || []}
+                  images={product.product_images?.map(img => ({
+                    ...img,
+                    storage_path: supabase.storage
+                      .from("images")
+                      .getPublicUrl(img.storage_path).data.publicUrl
+                  })) || []}
                   selectedImage={selectedImage}
                   onImageSelect={setSelectedImage}
                   title={product.title || ''}
@@ -155,7 +167,7 @@ const ProductDetail = ({
       </Card>
 
       {/* Similar Products Section */}
-      {similarProducts && (
+      {similarProducts && similarProducts.length > 0 && (
         <Card className="overflow-hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-gray-200/50 dark:border-gray-700/50">
           <CardContent className="p-6">
             <ProductSimilar

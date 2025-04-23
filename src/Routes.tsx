@@ -44,12 +44,14 @@ export const Routes = () => {
         {/* Public Routes */}
         <Route 
           path="/" 
+          
           element={session ? <Navigate to="/products" replace /> : <Navigate to="/login" replace />} 
         />
         <Route 
           path="/login" 
           element={session ? <Navigate to="/products" replace /> : <Login />} 
         />
+
         <Route
           path="/home"
           element={<Home />}

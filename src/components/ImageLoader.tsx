@@ -16,7 +16,7 @@ const preloadImage = (src: string): Promise<void> => {
     const img = new Image();
     img.src = src;
     img.onload = () => resolve();
-    img.onerror = (e) => reject(new Error(`Failed to preload image: ${src}`));
+    img.onerror = () => reject(new Error(`Failed to preload image: ${src}`));
   });
 };
 
@@ -33,7 +33,11 @@ export const ImageLoader = memo(({
   const { toast } = useToast();
 
   const loadImage = useCallback(async () => {
-    if (!src) return;
+    if (!src) {
+      setError(true);
+      setIsLoading(false);
+      return;
+    }
     
     try {
       // Check if image is in cache
@@ -44,33 +48,51 @@ export const ImageLoader = memo(({
         // If not in cache, preload and cache it
         await preloadImage(src);
         const response = await fetch(src);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.statusText}`);
+        }
         const clonedResponse = response.clone();
         await cache.put(src, clonedResponse);
       }
       
-      setIsLoading(false);
+      // Don't set loading to false here, let the img onLoad handler do it
     } catch (err) {
       console.error('Error loading image:', err);
       setError(true);
       setIsLoading(false);
       toast({
         title: "Error loading image",
-        description: "Failed to load image. Please try again later.",
+        description: err instanceof Error ? err.message : "Failed to load image",
         variant: "destructive",
       });
     }
   }, [src, toast]);
 
   useEffect(() => {
+    let mounted = true;
+
     setIsLoading(true);
     setError(false);
-    loadImage();
-  }, [loadImage]);
+    
+    loadImage().catch(() => {
+      if (mounted) {
+        setError(true);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [src, loadImage]);
 
   if (error) {
     return (
-      <div className="flex items-center justify-center bg-gray-100 rounded-md" style={{ width, height }}>
-        <span className="text-sm text-gray-500">Failed to load image</span>
+      <div 
+        className={`flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-md ${className}`}
+        style={{ width, height }}
+      >
+        <span className="text-sm text-gray-500 dark:text-gray-400">Failed to load image</span>
       </div>
     );
   }
@@ -78,21 +100,23 @@ export const ImageLoader = memo(({
   return (
     <>
       {isLoading && (
-        <Skeleton 
-          className={`${className} animate-none`}
-          style={{ width, height }}
-        />
+        <div className={`${className} animate-none`} style={{ width, height }}>
+          <Skeleton className="w-full h-full" />
+        </div>
       )}
       <img
-        src={src}
+        src={src || "/placeholder.svg"}
         alt={alt}
         className={`${className} ${isLoading ? 'hidden' : 'block'}`}
         width={width}
         height={height}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
-        fetchpriority={priority ? "high" : "auto"}
         onLoad={() => setIsLoading(false)}
+        onError={() => {
+          setError(true);
+          setIsLoading(false);
+        }}
       />
     </>
   );

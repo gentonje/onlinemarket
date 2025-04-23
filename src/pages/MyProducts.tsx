@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo } from "react";
 import { useInView } from "react-intersection-observer";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +10,10 @@ import { ProductListingSection } from "@/components/products/ProductListingSecti
 import { useProducts } from "@/hooks/useProducts";
 import { Navigation } from "@/components/Navigation";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function MyProducts() {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedCurrency, setSelectedCurrency] = useState<SupportedCurrency>("SSP");
@@ -116,13 +117,10 @@ export default function MyProducts() {
         .eq('id', productId);
       
       if (error) throw error;
+        toast.success("Product deleted successfully");
       
-      toast.success("Product deleted successfully");
-      
-      // Remove the deleted product from the current view without full refresh
-      const updatedProducts = allProducts.filter(product => product.id !== productId);
-      // Force a refetch to update the list
-      window.location.reload();
+      // The UI will update automatically through React Query cache invalidation
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     } catch (error) {
       console.error('Error deleting product:', error);
       toast.error("Failed to delete product");
