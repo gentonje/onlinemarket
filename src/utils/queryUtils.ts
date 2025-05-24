@@ -1,5 +1,4 @@
 
-import { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 
@@ -25,7 +24,7 @@ export const optimizedSelect = <T>(
   // Apply filters
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
-      query = (query as PostgrestFilterBuilder<any, any, any>).eq(key, value);
+      query = (query as any).eq(key, value);
     }
   });
 
