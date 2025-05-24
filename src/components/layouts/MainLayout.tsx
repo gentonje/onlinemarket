@@ -27,19 +27,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="min-h-screen pb-16 safe-area-top">
       <Navigation 
         searchQuery={searchQuery} 
         onSearchChange={onSearchChange}
         selectedCurrency={selectedCurrency}
         onCurrencyChange={onCurrencyChange}
       />
-      <div className="container mx-auto px-4 pt-20 pb-20">
+      <div className="container mx-auto px-4 pt-20 pb-20 safe-area-bottom">
         {children || <Outlet />}
       </div>
       
-      {/* Removed BottomNav rendering on both mobile and desktop */}
-
       {/* Show currency selector in bottom right corner on desktop */}
       {!isMobile && onCurrencyChange && (
         <div className="fixed bottom-4 right-4 z-50">

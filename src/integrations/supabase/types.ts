@@ -59,6 +59,48 @@ export type Database = {
         }
         Relationships: []
       }
+      counties: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          state: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          state: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          state?: string
+        }
+        Relationships: []
+      }
+      countries: {
+        Row: {
+          code: string
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
       currencies: {
         Row: {
           code: string
@@ -97,6 +139,92 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      districts: {
+        Row: {
+          country_id: number
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          country_id: number
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          country_id?: number
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "districts_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          link: string | null
+          read: boolean
+          related_product_id: string | null
+          related_review_id: string | null
+          thumbnail_url: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          related_product_id?: string | null
+          related_review_id?: string | null
+          thumbnail_url?: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          related_product_id?: string | null
+          related_review_id?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_related_product_id_fkey"
+            columns: ["related_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_related_review_id_fkey"
+            columns: ["related_review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       onboarding_progress: {
         Row: {
@@ -244,9 +372,12 @@ export type Database = {
           available_quantity: number | null
           average_rating: number | null
           category: Database["public"]["Enums"]["product_category"] | null
+          country_id: number | null
+          county: string | null
           created_at: string
           currency: string | null
           description: string | null
+          expires_at: string | null
           id: string
           in_stock: boolean | null
           likes: number | null
@@ -258,15 +389,19 @@ export type Database = {
           storage_path: string
           title: string | null
           user_id: string
+          validity_period: string | null
           views: number | null
         }
         Insert: {
           available_quantity?: number | null
           average_rating?: number | null
           category?: Database["public"]["Enums"]["product_category"] | null
+          country_id?: number | null
+          county?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
+          expires_at?: string | null
           id?: string
           in_stock?: boolean | null
           likes?: number | null
@@ -278,15 +413,19 @@ export type Database = {
           storage_path: string
           title?: string | null
           user_id: string
+          validity_period?: string | null
           views?: number | null
         }
         Update: {
           available_quantity?: number | null
           average_rating?: number | null
           category?: Database["public"]["Enums"]["product_category"] | null
+          country_id?: number | null
+          county?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
+          expires_at?: string | null
           id?: string
           in_stock?: boolean | null
           likes?: number | null
@@ -298,9 +437,17 @@ export type Database = {
           storage_path?: string
           title?: string | null
           user_id?: string
+          validity_period?: string | null
           views?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "products_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_shop_id_fkey"
             columns: ["shop_id"]
@@ -319,10 +466,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_type: string
           address: string | null
           avatar_url: string | null
           contact_email: string | null
           created_at: string
+          custom_product_limit: number | null
           full_name: string | null
           id: string
           is_active: boolean | null
@@ -334,10 +483,12 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          account_type?: string
           address?: string | null
           avatar_url?: string | null
           contact_email?: string | null
           created_at?: string
+          custom_product_limit?: number | null
           full_name?: string | null
           id: string
           is_active?: boolean | null
@@ -349,10 +500,12 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          account_type?: string
           address?: string | null
           avatar_url?: string | null
           contact_email?: string | null
           created_at?: string
+          custom_product_limit?: number | null
           full_name?: string | null
           id?: string
           is_active?: boolean | null
@@ -364,6 +517,38 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      regions: {
+        Row: {
+          country_id: number
+          created_at: string
+          id: number
+          name: string
+          region_type: string
+        }
+        Insert: {
+          country_id: number
+          created_at?: string
+          id?: number
+          name: string
+          region_type: string
+        }
+        Update: {
+          country_id?: number
+          created_at?: string
+          id?: number
+          name?: string
+          region_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regions_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       review_replies: {
         Row: {
@@ -547,6 +732,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_unread_notifications: {
+        Args: { user_id_input: string }
+        Returns: number
+      }
       get_or_create_default_shop: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -573,6 +762,7 @@ export type Database = {
       }
     }
     Enums: {
+      notification_type: "review_comment" | "review_reply" | "product_message"
       onboarding_step: "profile_complete" | "shop_created" | "first_product"
       product_category:
         | "Electronics"
@@ -714,6 +904,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      notification_type: ["review_comment", "review_reply", "product_message"],
       onboarding_step: ["profile_complete", "shop_created", "first_product"],
       product_category: [
         "Electronics",

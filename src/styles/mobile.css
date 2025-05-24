@@ -1,0 +1,61 @@
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Improve touch targets */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better mobile viewport handling */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Smooth scrolling for mobile */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide scrollbars on mobile */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Improve form inputs on mobile */
+  input, textarea, select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    border-radius: 8px;
+  }
+
+  /* Better card spacing on mobile */
+  .grid {
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+
+  /* Optimize product cards for mobile */
+  .product-card {
+    margin-bottom: 1rem;
+  }
+
+  /* Full-width buttons on mobile */
+  .mobile-full-width {
+    width: 100%;
+  }
+}
+
+/* Safe area handling for notched devices */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Status bar color for mobile apps */
+meta[name="theme-color"] {
+  content: #fb923c;
+}
